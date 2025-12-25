@@ -13,7 +13,6 @@ import subprocess
 import sys
 import pathlib
 import datetime
-import os
 import platform
 
 # -------------------- 基础配置 --------------------
@@ -25,13 +24,23 @@ import platform
 
 
 # -------------------- 工具函数 --------------------
-def 记录日志(msg: str):
+def 记录日志(msg: str, is_success: bool = None):
     """
     同时打印到终端 + 追加到日志文件，方便后续排错
     时间格式：月-日 时:分:秒
+    is_success: True=成功信息(✅), False=失败信息(❌), None=普通信息
     """
     ts = datetime.datetime.now().strftime("%m-%d %H:%M:%S")
-    line = f"[{ts}] {msg}"
+
+    # 根据状态添加图标
+    if is_success is True:
+        prefix = "✅"
+    elif is_success is False:
+        prefix = "❌"
+    else:
+        prefix = "ℹ️"
+
+    line = f"[{ts}] {prefix} {msg}"
     print(line)
     # 追加写，UTF-8 兼容中文路径/提交信息
     日志文件.open("a", encoding="utf-8").write(line + "\n")
@@ -56,7 +65,7 @@ def 同步仓库(repo: pathlib.Path):
     任何一步失败都会记录错误并跳过
     """
     if not (repo / ".git").is_dir():
-        记录日志(f"跳过 {repo} （未发现 .git 目录）")
+        记录日志(f"跳过 {repo} （未发现 .git 目录）", is_success=False)
         return
 
     记录日志(f"开始处理  {repo}")
@@ -64,7 +73,7 @@ def 同步仓库(repo: pathlib.Path):
     # 1. 拉取远端更新
     res = 执行git命令("pull", "--rebase", repo=repo)
     if res.returncode:
-        记录日志(f"  拉取失败: {res.stderr.strip()}")
+        记录日志(f"  拉取失败: {res.stderr.strip()}", is_success=False)
         return
 
     # 2. 检查是否有未提交改动
@@ -82,10 +91,10 @@ def 同步仓库(repo: pathlib.Path):
     # 3. 推送到远端
     res = 执行git命令("push", repo=repo)
     if res.returncode:
-        记录日志(f"  推送失败: {res.stderr.strip()}")
+        记录日志(f"  推送失败: {res.stderr.strip()}", is_success=False)
         return
 
-    记录日志("  完成")
+    记录日志("  完成", is_success=True)
 
 
 def 主函数():
@@ -115,10 +124,10 @@ def 主函数():
     for path_str in repos:
         repo = pathlib.Path(path_str).expanduser().resolve()
         if not repo.exists():
-            记录日志(f"路径不存在：{repo}")
+            记录日志(f"路径不存在：{repo}", is_success=False)
             continue
         同步仓库(repo)
-    记录日志("===== 全部完成 =====")
+    记录日志("===== 全部完成 =====", is_success=True)
 
 
 # -------------------- 主程序 --------------------
