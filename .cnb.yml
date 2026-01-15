@@ -1,0 +1,44 @@
+main:
+  push:
+    # 统一导入密钥变量，供所有 stage 使用
+    - imports:
+        - https://cnb.cool/mlosun/Base/secret/-/blob/main/github.yml
+        - https://cnb.cool/mlosun/Base/secret/-/blob/main/wechat.yml
+
+      # ===== 关键业务阶段（顺序执行） =====
+      stages:
+        # 1. 把代码同步到外部 Github 仓库
+        - name: 同步到Github
+          image: tencentcom/git-sync
+          settings:
+            target_url: https://github.com/mlosun/OneClickGitSync.git
+            auth_type: https
+            username: ${GITHUB_USERNAME}
+            password: ${GITHUB_ACCESS_TOKEN}
+
+        # 2. 仅在所有业务阶段成功后发送“成功”消息
+        #    allowFailure: true 保证通知接口异常时不会把整次构建标红
+        - name: 构建成功通知
+          image: tencentcom/wecom-message
+          allowFailure: true
+          settings:
+            robot: ${WECOM_PUSH}
+            msgType: text
+            content: |
+              ✅ 构建成功！
+              - 仓库名称: ${CNB_REPO_NAME}
+              - 仓库地址: ${CNB_REPO_URL_HTTPS}
+              - 构建地址: ${CNB_BUILD_WEB_URL}
+
+      # ===== 失败补偿阶段（仅当上面 stages 任意一步失败才执行） =====
+      failStages:
+        - name: 构建失败通知
+          image: tencentcom/wecom-message
+          settings:
+            robot: ${WECOM_PUSH}
+            msgType: text
+            content: |
+              ❌ 构建失败！
+              - 仓库名称: ${CNB_REPO_NAME}
+              - 仓库地址: ${CNB_REPO_URL_HTTPS}
+              - 构建地址: ${CNB_BUILD_WEB_URL}
