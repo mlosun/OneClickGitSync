@@ -104,7 +104,7 @@ def 扫描并同步仓库(扫描路径):
 def 记录日志(msg: str, end: str = "\n"):
     """打印到终端 + 追加到日志文件"""
     ts = datetime.datetime.now().strftime("%m-%d %H:%M:%S")
-    line = f"[{ts}]{msg}"
+    line = f"[{ts}] {msg}"
     print(line, end=end)
     日志文件.open("a", encoding="utf-8").write(line + "\n")
 
