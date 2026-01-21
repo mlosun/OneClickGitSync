@@ -121,7 +121,14 @@ def 同步仓库(repo: pathlib.Path):
     # 1. 拉取远端更新
     res = 执行git命令("pull", "--rebase", repo=repo)
     if res.returncode:
-        记录日志(f"- {repo.name} ❌ 拉取失败")
+        错误行 = [line.strip() for line in res.stderr.strip().split('\n') if line.strip()]
+        if 错误行:
+            记录日志(f"- {repo.name} ❌ 拉取失败")
+            记录日志(f"  ├─ {错误行[0]}")
+            for line in 错误行[1:]:
+                记录日志(f"  └─ {line}")
+        else:
+            记录日志(f"- {repo.name} ❌ 拉取失败")
         return
 
     # 2. 检查是否有未提交改动
@@ -129,23 +136,47 @@ def 同步仓库(repo: pathlib.Path):
     if res.stdout.strip():
         # 有改动 -> 自动提交
         执行git命令("add", "-A", repo=repo)
-        执行git命令(
+        res = 执行git命令(
             "commit",
             "-m",
             f"auto-sync {datetime.datetime.now():%Y-%m-%d_%H%M}",
             repo=repo,
         )
+        if res.returncode:
+            错误行 = [line.strip() for line in res.stderr.strip().split('\n') if line.strip()]
+            if 错误行:
+                记录日志(f"- {repo.name} ❌ 提交失败")
+                记录日志(f"  ├─ {错误行[0]}")
+                for line in 错误行[1:]:
+                    记录日志(f"  └─ {line}")
+            else:
+                记录日志(f"- {repo.name} ❌ 提交失败")
+            return
         # 3. 推送到远端
         res = 执行git命令("push", repo=repo)
         if res.returncode:
-            记录日志(f"- {repo.name} ❌ 推送失败")
+            错误行 = [line.strip() for line in res.stderr.strip().split('\n') if line.strip()]
+            if 错误行:
+                记录日志(f"- {repo.name} ❌ 推送失败")
+                记录日志(f"  ├─ {错误行[0]}")
+                for line in 错误行[1:]:
+                    记录日志(f"  └─ {line}")
+            else:
+                记录日志(f"- {repo.name} ❌ 推送失败")
             return
         记录日志(f"- {repo.name} ✅ 已提交并推送")
     else:
         # 3. 推送到远端
         res = 执行git命令("push", repo=repo)
         if res.returncode:
-            记录日志(f"- {repo.name} ❌ 推送失败")
+            错误行 = [line.strip() for line in res.stderr.strip().split('\n') if line.strip()]
+            if 错误行:
+                记录日志(f"- {repo.name} ❌ 推送失败")
+                记录日志(f"  ├─ {错误行[0]}")
+                for line in 错误行[1:]:
+                    记录日志(f"  └─ {line}")
+            else:
+                记录日志(f"- {repo.name} ❌ 推送失败")
             return
         记录日志(f"- {repo.name} ✅ 已同步（无改动）")
 
